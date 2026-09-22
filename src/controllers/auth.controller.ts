@@ -13,7 +13,7 @@ export const register = async (req: Request, res: Response) => {
       message: 'Invalid request'
     })
   }
-  
+
   const data = result.data
   const { email, password, name} = data;
 
@@ -53,7 +53,7 @@ export const login = async (req: Request, res: Response) => {
   }
 
   const token = jwt.sign(
-    {useId: user.id, role: user.role},
+    {userId: user.id, role: user.role},
     env.jwtSecret!,
     {expiresIn: env.jwtTTL as any ?? '2d'}
   )
