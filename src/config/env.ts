@@ -9,5 +9,7 @@ export const env = {
   dbPassword: process.env.DB_PASSWORD,
   dbName: process.env.DB_DATABASE,
   port: process.env.APP_PORT || '3000',
-  host: process.env.APP_HOST || 'localhost'
+  host: process.env.APP_HOST || 'localhost',
+  jwtSecret: process.env.JWT_SECRET,
+  jwtTTL: process.env.JWT_TTL || '3200',
 }

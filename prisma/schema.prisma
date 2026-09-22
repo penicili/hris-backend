@@ -37,7 +37,7 @@ model User {
   email        String    @unique
   name         String
   passwordHash String
-  role         UserRole
+  role         UserRole  @default(user)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   employeeId   Employee?
@@ -65,7 +65,7 @@ model Employee {
 }
 
 model Department {
-  id           Int  @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   employees Employee[] @relation("DepartmentEmployees")
 
