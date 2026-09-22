@@ -16,12 +16,12 @@ export const createDepartment = async (req: Request, res: Response) => {
   })
 }
 
-export const getAllDepartment = async (res: Response) => {
+export const getAllDepartment = async (_req: Request,  res: Response) => {
   try {
 
     const allDepartment = await prisma.department.findMany()
 
-    if (!allDepartment) {
+    if (allDepartment.length === 0) {
       return res.status(204).json({
         message: 'No departments found'
       })
