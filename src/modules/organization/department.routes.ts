@@ -1,4 +1,4 @@
-import { createDepartment, getAllDepartment, getDetails, updateDetails } from '../controllers/department.controller'
+import { createDepartment, getAllDepartment, getDetails, updateDetails } from './department.controller'
 import { Router } from 'express';
 
 const router = Router();

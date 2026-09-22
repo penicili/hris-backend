@@ -1,7 +1,7 @@
 import express, { type Express, type Request, type Response } from 'express'
 import { env } from './config/env.js'
 import prisma from './lib/prisma.js'
-import routes from './routes/index.js'
+import routes from './modules/index.js'
 
 const app: Express = express()
 
