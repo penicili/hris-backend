@@ -11,7 +11,8 @@ export const createDepartment = async (req: Request, res: Response) => {
   })
 
   res.status(201).json({
-    message: `Succesfully created department "${newDept.name}" with id: ${newDept.id}`
+    message: `Succesfully created department "${newDept.name}" with id: ${newDept.id}`,
+    data: newDept
   })
 }
 
@@ -27,6 +28,7 @@ export const getAllDepartment = async (res: Response) => {
     }
 
     res.status(200).json({
+      message: `Success`,
       data: allDepartment
     })
   } catch (error) {
@@ -39,8 +41,50 @@ export const getAllDepartment = async (res: Response) => {
 }
 
 // export const getLead = async (req: Request, res: Response) => {
-//   const {depName} = req.body;
-//   try{
-    
+//   const { depId } = req.body;
+//   try {
+//     const depLead = await prisma.employee.findFirst({
+//       where: {
+//         leadOf: {
+//           id: depId
+//         }
+//       }
+//     })
+//     res.status(200).json({
+//       data: depLead
+//     })
+//   } catch (error) {
+//     return res.status(500).json({
+//       message: `Failure to get department lead of department with id: ${depId}`
+//     })
 //   }
 // }
+
+export const getDetails = async (req: Request, res: Response) => {
+  const { deptId } = req.params
+  const id = Number(deptId)
+
+  try {
+    const dept = await prisma.department.findUnique({ where: { id } })
+    return res.status(200).json({
+      data: dept
+    })
+  } catch (error) {
+    return res.status(404).json({
+      message: `Cant find department with id ${id}`
+    })
+  }
+}
+
+export const updateDetails = async (req: Request, res: Response) => {
+  const { lead, name, positions, id } = req.body;
+  try {
+    const updatedDept = prisma.department.update({ where: { id }, data: { lead, name, positions } })
+    return res.status(200).json({
+      message: `Updated department where id: ${id}`,
+      data: updatedDept
+    })
+  } catch (error) {
+    return res.status(500)
+  }
+}
