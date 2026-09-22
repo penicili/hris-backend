@@ -3,9 +3,19 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma'
 import { env } from '../config/env';
+import { registerSchema } from '../schemas/auth.schema';
 
 export const register = async (req: Request, res: Response) => {
-  const { email, password, name, role } = req.body;
+  
+  const result = registerSchema.safeParse(req.body)
+  if (!result.success){
+    return res.status(400).json({
+      message: 'Invalid request'
+    })
+  }
+  
+  const data = result.data
+  const { email, password, name} = data;
 
   const isExist = await prisma.user.findUnique({ where: { email } })
   if (isExist) {
@@ -18,7 +28,7 @@ export const register = async (req: Request, res: Response) => {
 
   const user = await prisma.user.create({
     data: {
-      email, name, passwordHash, role
+      email, name, passwordHash
     }
   })
 
@@ -49,3 +59,8 @@ export const login = async (req: Request, res: Response) => {
   )
   res.json({token})
 }
+
+export const logout = async (req: Request, res: Response) => {
+  return null
+}
+

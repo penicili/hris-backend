@@ -5,12 +5,13 @@ import { env } from '../config/env';
 
 const adapter = new PrismaMariaDb({
   host: env.dbHost ?? 'localhost',
-  port: Number (env.dbPort) ?? 3306,
+  port: Number(env.dbPort ?? 3306),
   user: env.dbUser,
   password: env.dbPassword,
   database: env.dbName,
+  allowPublicKeyRetrieval: true
 })
 
-const prisma = new PrismaClient({adapter})
+const prisma = new PrismaClient({ adapter })
 
 export default prisma;
