@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Status {
+  on_leave
+  resigned
+  active
+}
+
+enum EmploymentStatus {
+  permanent
+  contract
+  probation
+  intern
+}
+
+enum UserRole {
+  admin
+  executive
+  management
+  user
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         UserRole
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  employeeId   Employee?
+}
+
+model Employee {
+  id         Int               @id @default(autoincrement())
+  nik        String            @unique
+  fullName   String
+  hireDate   DateTime
+  status     Status
+  salary     Int
+  employment EmploymentStatus?
+
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int?  @unique
+
+  department   Department? @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  departmentId Int?
+
+  leadOf Department? @relation("DepartmentLead")
+
+  positionId Int
+  position   Position @relation(fields: [positionId], references: [id])
+}
+
+model Department {
+  id           Int  @id @default(autoincrement())
+
+  employees Employee[] @relation("DepartmentEmployees")
+
+  positions Position[]
+
+  lead   Employee? @relation("DepartmentLead", fields: [leadId], references: [id])
+  leadId Int?      @unique
+}
+
+model Position {
+  id    Int    @id @default(autoincrement())
+  title String
+
+  departmentId Int?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  employees Employee[]
+}
