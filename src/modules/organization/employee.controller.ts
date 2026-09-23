@@ -3,6 +3,7 @@ import { Prisma } from "../../generated/prisma/client";
 import type { ValidatedRequest } from "../../middlewares/validate";
 import { assignUserSchema, newEmployeeSchema, updateEmployeeSchema } from './organization.schema'
 import prisma from "../../lib/prisma";
+import { request } from "node:http";
 
 export const createEmployee = async (req: ValidatedRequest<typeof newEmployeeSchema>, res: Response) => {
   const { fullName, hireDate, nik, salary, departmentId, positionId, status } = req.body;
@@ -84,6 +85,46 @@ export const updateEmployee = async (req: ValidatedRequest<typeof updateEmployee
 
     return res.status(500).json({
       message: 'Failed to update employee'
+    })
+  }
+}
+
+export const getAllEmployee = async (_req: Request, res: Response) => {
+  try {
+    const allEmployee = await prisma.employee.findMany();
+    if (allEmployee.length === 0) {
+      return res.status(204)
+    }
+    res.status(200).json({
+      message: 'Successfully get all employee data',
+      data: allEmployee
+    })
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: 'Error fetching employees data'
+    })
+  }
+
+}
+
+export const getEmployeeDetail = async (req: Request, res: Response) => {
+  const { id } = req.body;
+  try {
+    const employee = await prisma.employee.findUnique({ where: { id } })
+    if (!employee) {
+      return res.status(404).json({
+        message: `Cant find employee with id ${id}`
+      })
+    }
+    res.status(200).json({
+      message: `Successfully get employee data with id ${id}`,
+      data: employee
+    })
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: `Failure fetching details of employee with id ${id}`
     })
   }
 }
