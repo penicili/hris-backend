@@ -3,7 +3,6 @@ import { Prisma } from "../../generated/prisma/client";
 import type { ValidatedRequest } from "../../middlewares/validate";
 import { assignUserSchema, newEmployeeSchema, updateEmployeeSchema } from './organization.schema'
 import prisma from "../../lib/prisma";
-import { request } from "node:http";
 
 export const createEmployee = async (req: ValidatedRequest<typeof newEmployeeSchema>, res: Response) => {
   const { fullName, hireDate, nik, salary, departmentId, positionId, status } = req.body;
