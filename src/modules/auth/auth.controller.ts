@@ -4,18 +4,11 @@ import jwt from 'jsonwebtoken';
 import prisma from '../../lib/prisma'
 import { env } from '../../config/env';
 import { registerSchema } from './auth.schema';
+import type { ValidatedRequest } from '../../middlewares/validate';
 
-export const register = async (req: Request, res: Response) => {
-  
-  const result = registerSchema.safeParse(req.body)
-  if (!result.success){
-    return res.status(400).json({
-      message: 'Invalid request'
-    })
-  }
+export const register = async (req: ValidatedRequest<typeof registerSchema>, res: Response) => {
 
-  const data = result.data
-  const { email, password, name} = data;
+  const { email, password, name } = req.body;
 
   const isExist = await prisma.user.findUnique({ where: { email } })
   if (isExist) {
