@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Status, EmploymentStatus } from '../../generated/prisma/client';
+import { Status, EmploymentStatus } from '../../generated/prisma/client.js';
 
 export const newEmployeeSchema = z.object({
   nik: z.string(),

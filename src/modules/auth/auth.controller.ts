@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import prisma from '../../lib/prisma'
-import { env } from '../../config/env';
-import { registerSchema } from './auth.schema';
-import type { ValidatedRequest } from '../../middlewares/validate';
+import prisma from '../../lib/prisma.js'
+import { env } from '../../config/env.js';
+import { registerSchema } from './auth.schema.js';
+import type { ValidatedRequest } from '../../middlewares/validate.js';
 
 export const register = async (req: ValidatedRequest<typeof registerSchema>, res: Response) => {
 

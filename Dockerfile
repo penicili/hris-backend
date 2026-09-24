@@ -8,9 +8,12 @@ RUN npm ci
 COPY prisma ./prisma
 COPY tsconfig*.json ./
 COPY src ./src
+COPY prisma7.config.ts ./
 
 RUN npx prisma generate
 RUN npm run build
+
+RUN mkdir -p dist/generated && cp -r src/generated/* dist/generated/
 
 FROM node:22-alpine AS production
 
@@ -23,6 +26,7 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma7.config.ts ./
 
 EXPOSE 3000
 

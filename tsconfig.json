@@ -11,10 +11,13 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "outDir": "./dist",
+    "rootDir": "./src",
     "types": [
       "node"
     ]
   },"exclude": [
     "./seed.ts"
+  ], "include": [
+    "./src/**/*"
   ]
 }

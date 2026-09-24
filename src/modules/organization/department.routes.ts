@@ -1,6 +1,6 @@
-import { createDepartment, getAllDepartment, getDetails, updateDetails } from './department.controller'
-import { idParamsSchema } from './organization.schema'
-import { validate } from '../../middlewares/validate'
+import { createDepartment, getAllDepartment, getDetails, updateDetails } from './department.controller.js'
+import { idParamsSchema } from './organization.schema.js'
+import { validate } from '../../middlewares/validate.js'
 import { Router } from 'express';
 
 const router = Router();
