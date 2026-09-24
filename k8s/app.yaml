@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: hris-app
-          image: penicili/hris-app:latest
+          image: penicili/hris-anu-be:c608e25
           ports:
             - containerPort: 3000
           env:
@@ -35,7 +35,7 @@ spec:
             - name: APP_PORT
               value: "3000"
             - name: JWT_SECRET
-              value: your-secret
+              value: dad53e7599fecbc5e16f9d04e8ca9be36090595f857b1b342cd3f94e172e3a3e
             - name: JWT_TTL
               value: "86400"
 
