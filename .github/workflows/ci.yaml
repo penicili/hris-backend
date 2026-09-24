@@ -7,19 +7,23 @@ on:
   pull_request:
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
-
+    outputs:
+      commit_id: ${{ steps.commit.outputs.short }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v4
         with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - run: npx prisma generate
-
-      - run: npm run build
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - 
+        id: commit
+        uses: prompt/actions-commit-hash@v4
+      -
+        name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/hris-anu-be:${{ steps.commit.outputs.short }}
