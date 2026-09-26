@@ -1,6 +1,8 @@
+import type { UserRole } from '../generated/prisma/enums.js'
+
 export interface Decrypted {
   userId: number,
-  role: string
+  role: UserRole
 }
 declare global {
   namespace Express{

@@ -23,6 +23,12 @@ export const updateEmployeeSchema = z.object({
   leadOf: z.number().int().optional(),
 })
 
+export const updateDepartmentSchema = z.object({
+  name: z.string().min(1).optional(),
+  // null clears the lead, otherwise the id of the employee that becomes the lead
+  lead: z.number().int().positive().nullish(),
+})
+
 export const assignUserSchema = z.object({
   employeeId: z.number().int(),
   userId: z.number().int()

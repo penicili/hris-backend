@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { ValidatedRequest } from "../../middlewares/validate.js";
-import { assignUserSchema, newEmployeeSchema, updateEmployeeSchema } from './organization.schema.js'
+import { assignUserSchema, idParamsSchema, newEmployeeSchema, updateEmployeeSchema } from './organization.schema.js'
 import prisma from "../../lib/prisma.js";
 
 export const createEmployee = async (req: ValidatedRequest<typeof newEmployeeSchema>, res: Response) => {
@@ -46,8 +46,11 @@ export const assignUser = async (req: ValidatedRequest<typeof assignUserSchema>,
 
 }
 
-export const updateEmployee = async (req: ValidatedRequest<typeof updateEmployeeSchema>, res: Response) => {
-  const { id } = req.params
+export const updateEmployee = async (
+  req: ValidatedRequest<typeof updateEmployeeSchema> & ValidatedRequest<typeof idParamsSchema, 'params'>,
+  res: Response
+) => {
+  const id = req.params.id
   const employeeId = Number(id)
   const { leadOf, ...updatedData } = req.body
 
@@ -57,6 +60,22 @@ export const updateEmployee = async (req: ValidatedRequest<typeof updateEmployee
     // leadOf has no FK on Employee (Department.leadId holds it),
     // so it must be set as a relation, not as a scalar id
     if (leadOf != null) {
+      const current = await prisma.employee.findUnique({
+        where: { id: employeeId },
+        select: { departmentId: true }
+      })
+
+      // a lead can only come from the department the employee sits in, which may
+      // itself be moving in this same request
+      const effectiveDepartmentId =
+        'departmentId' in updatedData ? updatedData.departmentId : current?.departmentId ?? null
+
+      if (effectiveDepartmentId !== leadOf) {
+        return res.status(422).json({
+          message: `Employee can only lead department with id: ${effectiveDepartmentId}`
+        })
+      }
+
       data.leadOf = { connect: { id: leadOf } }
     }
 
@@ -108,9 +127,10 @@ export const getAllEmployee = async (_req: Request, res: Response) => {
 }
 
 export const getEmployeeDetail = async (req: Request, res: Response) => {
-  const { id } = req.body;
+  const { id } = req.params;
+  const EmployeeId = Number(id)
   try {
-    const employee = await prisma.employee.findUnique({ where: { id } })
+    const employee = await prisma.employee.findUnique({ where: { id: EmployeeId } })
     if (!employee) {
       return res.status(404).json({
         message: `Cant find employee with id ${id}`
@@ -126,4 +146,23 @@ export const getEmployeeDetail = async (req: Request, res: Response) => {
       message: `Failure fetching details of employee with id ${id}`
     })
   }
+}
+
+
+export const getMyData = async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+  try {    
+    const userData = await prisma.user.findUnique({ where: { id: userId } })
+    const employeeData = await prisma.employee.findUnique({ where: { userId } })
+
+    return res.status(200).json({
+      data: userData, employeeData
+    })
+  } catch (error) {
+    return res.status(404).json({
+      message: `Cant find employee data for user with id ${userId}`
+    })
+  }
+
+
 }
