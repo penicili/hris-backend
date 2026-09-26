@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hris-ingress-be
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "backend.hris.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hris-backend
+            port:
+              number: 3000

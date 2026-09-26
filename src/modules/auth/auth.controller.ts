@@ -46,14 +46,29 @@ export const login = async (req: Request, res: Response) => {
   }
 
   const token = jwt.sign(
-    {userId: user.id, role: user.role},
+    { userId: user.id, role: user.role },
     env.jwtSecret!,
-    {expiresIn: env.jwtTTL as any ?? '2d'}
+    { expiresIn: env.jwtTTL as any ?? '1d' }
   )
-  res.json({token})
+  res.json({ token })
 }
 
 export const logout = async (req: Request, res: Response) => {
   return null
 }
 
+export const me = async (req: Request, res: Response) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true
+    }
+  })
+  if (!user){
+    return res.status(401).json({message: 'User not found'})
+  }
+  res.status(200).json(user);
+}

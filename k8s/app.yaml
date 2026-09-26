@@ -6,11 +6,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hris-app
+      app: hris-backend
   template:
     metadata:
       labels:
-        app: hris-app
+        app: hris-backend
     spec:
       containers:
         - name: hris-app
@@ -43,10 +43,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: hris-app
+  name: hris-backend
 spec:
   selector:
-    app: hris-app
+    app: hris-backend
   ports:
     - port: 3000
       targetPort: 3000

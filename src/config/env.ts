@@ -11,5 +11,5 @@ export const env = {
   port: process.env.APP_PORT || '3000',
   host: process.env.APP_HOST || 'localhost',
   jwtSecret: process.env.JWT_SECRET,
-  jwtTTL: process.env.JWT_TTL || '3200',
+  jwtTTL: process.env.JWT_TTL || '1d',
 }
