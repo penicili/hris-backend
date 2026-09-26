@@ -1,4 +1,3 @@
-// Department scoping for RBAC: a department lead may only act on their own department.
 import type { NextFunction, Request, Response } from 'express';
 import { getEmployeeDepartmentId, getLedDepartmentId, isGlobalRole, toId } from '../utils/access.js';
 
@@ -12,14 +11,22 @@ export const departmentFromParams: DepartmentTarget = async (req) => toId(req.pa
 
 export const departmentFromBody: DepartmentTarget = async (req) =>
   toId(req.body?.departmentId);
-
+/**
+ * Ambil department dari employee (dari params)
+ * @param req 
+ * @returns 
+ */
 export const departmentOfEmployeeFromParams: DepartmentTarget = async (req) => {
   const employeeId = toId(req.params?.id);
   if (employeeId === null) return null;
 
   return getEmployeeDepartmentId(employeeId);
 };
-
+/**
+ * Ambil department asal employee
+ * @param field 
+ * @returns 
+ */
 export const departmentOfEmployeeFromBody =
   (field: string): DepartmentTarget =>
   async (req) => {
@@ -35,6 +42,12 @@ export type DepartmentScopeOptions = {
 };
 
 
+/**
+ * Hanya lead dari departement x yang bisa ubah data department itu
+ * @param target department target
+ * @param options 
+ * @returns 
+ */
 export const requireDepartmentAccess =
   (target: DepartmentTarget, options: DepartmentScopeOptions = {}) =>
   async (req: Request, res: Response, next: NextFunction) => {
@@ -80,7 +93,11 @@ export const requireDepartmentAccess =
     }
   };
 
-
+/**
+ * Akses hanya oleh role Global (Admin dan executive)
+ * @param fields 
+ * @returns 
+ */
 export const denyDepartmentScopedFields =
   (fields: string[]) =>
   (req: Request, res: Response, next: NextFunction) => {

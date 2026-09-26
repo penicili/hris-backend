@@ -2,7 +2,13 @@ import type { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { env } from '../config/env.js'
 import type { Decrypted } from '../types/express.js'
-
+/**
+ * Ambil auth header (Bearer token, terus verify, tambahin req.user, next)
+ * @param req 
+ * @param res 
+ * @param next 
+ * @returns 
+ */
 export const authenticate = (
   req: Request,
   res: Response,

@@ -3,7 +3,12 @@ import { Prisma } from "../../generated/prisma/client.js";
 import type { ValidatedRequest } from "../../middlewares/validate.js";
 import { assignUserSchema, idParamsSchema, newEmployeeSchema, updateEmployeeSchema } from './organization.schema.js'
 import prisma from "../../lib/prisma.js";
-
+/**
+ * Tambahin employee baru
+ * @param req 
+ * @param res 
+ * @returns 
+ */
 export const createEmployee = async (req: ValidatedRequest<typeof newEmployeeSchema>, res: Response) => {
   const { fullName, hireDate, nik, salary, departmentId, positionId, status } = req.body;
 
@@ -21,11 +26,17 @@ export const createEmployee = async (req: ValidatedRequest<typeof newEmployeeSch
     })
   }
 }
-
+/**
+ * Assign user ke employee yang udah ada, validasi dengan NIK dan nama panjang
+ * TODO: mungkin nanti dipending dulu assignmentnya terus di ACC sama admin (?)
+ * @param req {nik: nik input user, userId: userId, fullName: fullname input user}
+ * @param res 
+ * @returns 
+ */
 export const assignUser = async (req: ValidatedRequest<typeof assignUserSchema>, res: Response) => {
   // Assign existing user to existing employee
   // Perlu updat user.name ke fullname gak kira? (malas)
-  const { employeeId, userId } = req.body;
+  const { nik, userId, fullName } = req.body;
 
   try {
     const data: Prisma.EmployeeUpdateInput = {
@@ -33,7 +44,7 @@ export const assignUser = async (req: ValidatedRequest<typeof assignUserSchema>,
         connect: { id: userId }
       }
     }
-    const employee = await prisma.employee.update({ where: { id: employeeId }, data })
+    const employee = await prisma.employee.update({ where: { nik: nik }, data })
     res.status(200).json({
       message: `Assigned ${employee.fullName} to user ${userId}`,
     })
