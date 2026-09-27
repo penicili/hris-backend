@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hris-app
+  namespace: hrisapp
 spec:
   replicas: 1
   selector:
@@ -16,7 +17,7 @@ spec:
         - name: hris-app
           image: penicili/hris-anu-be:c608e25
           ports:
-            - containerPort: 3000
+            - containerPort: 5000
           env:
             - name: DATABASE_URL
               value: "mysql://hrisapp:hrisdevdbpassword@mysql:3306/hris_dev"
@@ -33,7 +34,7 @@ spec:
             - name: APP_HOST
               value: 0.0.0.0
             - name: APP_PORT
-              value: "3000"
+              value: "5000"
             - name: JWT_SECRET
               value: dad53e7599fecbc5e16f9d04e8ca9be36090595f857b1b342cd3f94e172e3a3e
             - name: JWT_TTL
@@ -44,10 +45,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: hris-backend
+  namespace: hrisapp
 spec:
   selector:
     app: hris-backend
   ports:
-    - port: 3000
-      targetPort: 3000
-  type: NodePort
+    - port: 5000
+      targetPort: 5000
+  type: ClusterIP

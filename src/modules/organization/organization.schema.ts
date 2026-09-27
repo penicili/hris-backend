@@ -30,8 +30,9 @@ export const updateDepartmentSchema = z.object({
 })
 
 export const assignUserSchema = z.object({
-  employeeId: z.number().int(),
-  userId: z.number().int()
+  nik: z.number().int(),
+  userId: z.number().int(),
+  fullName: z.string()
 })
 /**
  * Validation Schema for id in params

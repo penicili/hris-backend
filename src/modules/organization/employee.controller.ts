@@ -38,6 +38,11 @@ export const assignUser = async (req: ValidatedRequest<typeof assignUserSchema>,
   // Perlu updat user.name ke fullname gak kira? (malas)
   const { nik, userId, fullName } = req.body;
 
+  const targetEmployee = await prisma.employee.findFirst({ where: { nik, fullName } })
+  if (!targetEmployee) {
+    return res.status(403).json({ message: 'Cant find employee, make sure nik and fullname is correct (case-sensitive)' })
+  }
+
   try {
     const data: Prisma.EmployeeUpdateInput = {
       user: {
@@ -162,7 +167,7 @@ export const getEmployeeDetail = async (req: Request, res: Response) => {
 
 export const getMyData = async (req: Request, res: Response) => {
   const userId = req.user?.userId;
-  try {    
+  try {
     const userData = await prisma.user.findUnique({ where: { id: userId } })
     const employeeData = await prisma.employee.findUnique({ where: { userId } })
 
