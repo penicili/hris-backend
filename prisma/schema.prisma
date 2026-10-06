@@ -32,6 +32,13 @@ enum UserRole {
   user
 }
 
+enum LeaveApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 model User {
   id           Int       @id @default(autoincrement())
   email        String    @unique
@@ -62,10 +69,13 @@ model Employee {
 
   positionId Int
   position   Position @relation(fields: [positionId], references: [id])
+
+  leaveBalances LeaveBalance[]
+  leaveRequests LeaveRequest[]
 }
 
 model Department {
-  id Int @id @default(autoincrement())
+  id   Int    @id @default(autoincrement())
   name String @unique
 
   employees Employee[] @relation("DepartmentEmployees")
@@ -84,4 +94,40 @@ model Position {
   department   Department? @relation(fields: [departmentId], references: [id])
 
   employees Employee[]
+}
+
+model LeaveType {
+  id           Int    @id @default(autoincrement())
+  name         String
+  defaultQuota Int
+
+  balances LeaveBalance[]
+  requests LeaveRequest[]
+}
+
+model LeaveRequest {
+  id          Int                 @id @default(autoincrement())
+  employeeId  Int
+  leaveTypeId Int
+  startDate   DateTime
+  endDate     DateTime
+  days        Int
+  status      LeaveApprovalStatus @default(PENDING)
+  reason      String
+  createdAt   DateTime            @default(now())
+
+  employee  Employee  @relation(fields: [employeeId], references: [id])
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+}
+
+model LeaveBalance {
+  id          Int @id @default(autoincrement())
+  employeeId  Int
+  leaveTypeId Int
+  year        Int
+  quota       Int
+  used        Int
+
+  employee  Employee  @relation(fields: [employeeId], references: [id])
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
 }
