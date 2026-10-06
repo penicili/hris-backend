@@ -32,6 +32,18 @@ type SeedDepartment = {
   employees: SeedEmployee[]
 }
 
+type SeedLeaveType = {
+  name: string
+  defaultQuota: number
+}
+
+const leaveTypes: SeedLeaveType[] = [
+  { name: 'Annual Leave', defaultQuota: 12 },
+  { name: 'Sick Leave', defaultQuota: 12 },
+  { name: 'Maternity Leave', defaultQuota: 90 },
+  { name: 'Paternity Leave', defaultQuota: 14 },
+]
+
 const departments: SeedDepartment[] = [
   {
     name: 'Engineering',
@@ -119,12 +131,20 @@ try {
   console.log('(running inside a transaction: existing rows are reset first)\n')
 
   await prisma.$transaction(async (tx) => {
-    // Order matters: drop children before parents (department.leadId -> employee).
+    // Order matters: drop children before parents.
     await tx.department.updateMany({ data: { leadId: null } })
+    await tx.leaveRequest.deleteMany()
+    await tx.leaveBalance.deleteMany()
     await tx.employee.deleteMany()
     await tx.user.deleteMany()
     await tx.position.deleteMany()
     await tx.department.deleteMany()
+
+    const leaveTypeByName = new Map<string, number>()
+    for (const leaveTypeData of leaveTypes) {
+      const leaveType = await tx.leaveType.create({ data: leaveTypeData })
+      leaveTypeByName.set(leaveType.name, leaveType.id)
+    }
 
     // Users first, so employees can link straight to userId.
     const userIdByEmail = new Map<string, number>()
@@ -144,6 +164,7 @@ try {
     }
 
     let nikSeq = 1
+    const employeeIdByName = new Map<string, number>()
     for (const dept of departments) {
       const department = await tx.department.create({ data: { name: dept.name } })
 
@@ -170,19 +191,89 @@ try {
             userId: emp.account ? userIdByEmail.get(emp.account.email) : undefined,
           },
         })
+        employeeIdByName.set(employee.fullName, employee.id)
         if (emp.isLead) leadId = employee.id
       }
 
       await tx.department.update({ where: { id: department.id }, data: { leadId } })
     }
+
+    for (const [, employeeId] of employeeIdByName) {
+      for (const leaveTypeData of leaveTypes) {
+        const used =
+          (leaveTypeData.name === 'Annual Leave' && employeeId === employeeIdByName.get('Dewi Lestari'))
+            ? 3
+            : (leaveTypeData.name === 'Sick Leave' && employeeId === employeeIdByName.get('Reza Firmansyah'))
+              ? 2
+              : 0
+        await tx.leaveBalance.create({
+          data: {
+            employeeId,
+            leaveTypeId: leaveTypeByName.get(leaveTypeData.name)!,
+            year: 2026,
+            quota: leaveTypeData.defaultQuota,
+            used,
+          },
+        })
+      }
+    }
+
+    const annualLeaveId = leaveTypeByName.get('Annual Leave')!
+    const sickLeaveId = leaveTypeByName.get('Sick Leave')!
+    const leaveRequests = [
+      {
+        employeeName: 'Dewi Lestari',
+        leaveTypeId: annualLeaveId,
+        startDate: '2026-01-12',
+        endDate: '2026-01-14',
+        days: 3,
+        status: 'APPROVED' as const,
+        reason: 'Family vacation',
+      },
+      {
+        employeeName: 'Reza Firmansyah',
+        leaveTypeId: sickLeaveId,
+        startDate: '2026-09-21',
+        endDate: '2026-09-22',
+        days: 2,
+        status: 'APPROVED' as const,
+        reason: 'Medical recovery',
+      },
+      {
+        employeeName: 'Maya Sari',
+        leaveTypeId: annualLeaveId,
+        startDate: '2026-10-19',
+        endDate: '2026-10-20',
+        days: 2,
+        status: 'PENDING' as const,
+        reason: 'Personal matters',
+      },
+    ]
+
+    for (const request of leaveRequests) {
+      await tx.leaveRequest.create({
+        data: {
+          employeeId: employeeIdByName.get(request.employeeName)!,
+          leaveTypeId: request.leaveTypeId,
+          startDate: new Date(request.startDate),
+          endDate: new Date(request.endDate),
+          days: request.days,
+          status: request.status,
+          reason: request.reason,
+        },
+      })
+    }
   })
 
   // --- summary ---------------------------------------------------------
-  const [deptCount, empCount, posCount, userCount] = await Promise.all([
+  const [deptCount, empCount, posCount, userCount, leaveTypeCount, leaveBalanceCount, leaveRequestCount] = await Promise.all([
     prisma.department.count(),
     prisma.employee.count(),
     prisma.position.count(),
     prisma.user.count(),
+    prisma.leaveType.count(),
+    prisma.leaveBalance.count(),
+    prisma.leaveRequest.count(),
   ])
 
   console.log('Seeded:')
@@ -190,6 +281,9 @@ try {
   console.log(`  positions:   ${posCount}`)
   console.log(`  employees:   ${empCount}`)
   console.log(`  users:       ${userCount}`)
+  console.log(`  leave types: ${leaveTypeCount}`)
+  console.log(`  balances:    ${leaveBalanceCount}`)
+  console.log(`  requests:    ${leaveRequestCount}`)
   console.log('\nLogin accounts (password: ' + SEED_PASSWORD + '):')
   for (const dept of departments) {
     for (const emp of dept.employees) {

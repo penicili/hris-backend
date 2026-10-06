@@ -10,4 +10,5 @@
 --- 
 Catatan:
 - Run: `npm run dev`
-- Migrate: `npx prisma migrate dev --name <migration-name>`
+- Migrate: `npx prisma migrate dev --name <migration-name>`, habistu generate types `npx prisma generate`
+- Studio: `npx prisma studio`
