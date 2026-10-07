@@ -71,10 +71,15 @@ export const processLeaveRequest = async (
       throw new Error('nantilah diurus');
     }
 
-    const updated = await tx.leaveRequest.update({
-      where: { id: leaveRequestId },
+    // Check for race condition
+    const result = await tx.leaveRequest.updateMany({
+      where: { id: leaveRequestId, status: current },
       data: { status: statusChange }
     });
+
+    if (result.count === 0) {
+      throw new Error('Status sudah berubah, coba lagi');
+    }
 
     if (current === 'APPROVED' && statusChange === 'CANCELLED') {
       await changeLeaveBalance(
@@ -92,7 +97,9 @@ export const processLeaveRequest = async (
       );
     }
 
-    return updated;
+    return tx.leaveRequest.findUniqueOrThrow({
+      where: { id: leaveRequestId }
+    });
   });
 };
 
