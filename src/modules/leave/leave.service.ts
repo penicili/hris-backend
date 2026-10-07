@@ -4,6 +4,7 @@ import type { LeaveApprovalStatus } from '../../generated/prisma/client';
 import { Prisma } from '../../generated/prisma/client';
 import prisma from '../../lib/prisma';
 import { error } from 'node:console';
+import { DatabaseSync } from 'node:sqlite';
 
 type leaveInputRequest = {
   employeeId: number;
@@ -25,7 +26,7 @@ const canTransition = (from: LeaveApprovalStatus, to: LeaveApprovalStatus) => {
 };
 
 const calculateDays = (startDate: Date, endDate: Date): number => {
-  return Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 };
 
 export const applyForLeave = async ({
@@ -62,11 +63,14 @@ export const processLeaveRequest = async (
 ) => {
   const leaveRequest = await prisma.leaveRequest.findUnique({ where: { id: leaveRequestId } });
   if (!leaveRequest) {
+    // TODO: global error middlewer
     throw new Error('nantilah');
   }
   const current = leaveRequest.status;
+
+  // else
   if (canTransition(current, statusChange)) {
-    return await prisma.leaveRequest.update({
+    const updated = await prisma.leaveRequest.update({
       where: {
         id: leaveRequestId
       },
@@ -77,4 +81,24 @@ export const processLeaveRequest = async (
   } else {
     throw new Error('nantilah diurus');
   }
+  // Kalau approved terus cancel, balikin jatahnya
+  const days = leaveRequest.days;
+  
+  if (leaveRequest.status == 'APPROVED' && statusChange == 'CANCELLED') {
+    await changeLeaveBalance(days, leaveRequest.employeeId, leaveRequest.leaveTypeId);
+  } else if (leaveRequest.status == 'PENDING' && statusChange == 'APPROVED'){
+    await changeLeaveBalance(-days, leaveRequest.employeeId, leaveRequest.leaveTypeId);
+  }
+};
+
+const changeLeaveBalance = async (delta: number, employeeId: number, leaveTypeId: number) => {
+  const updatedBalance = await prisma.leaveBalance.update({
+    where: {employeeId_leaveTypeId:{
+      employeeId, leaveTypeId
+    }}, data:{
+      used: {
+        increment: delta
+      }
+    }} 
+  );
 };
