@@ -1,10 +1,6 @@
-import { start } from 'node:repl';
-import { env } from '../../config/env';
 import type { LeaveApprovalStatus } from '../../generated/prisma/client';
 import { Prisma } from '../../generated/prisma/client';
 import prisma from '../../lib/prisma';
-import { error } from 'node:console';
-import { DatabaseSync } from 'node:sqlite';
 
 type leaveInputRequest = {
   employeeId: number;
@@ -61,44 +57,62 @@ export const processLeaveRequest = async (
   leaveRequestId: number,
   statusChange: LeaveApprovalStatus
 ) => {
-  const leaveRequest = await prisma.leaveRequest.findUnique({ where: { id: leaveRequestId } });
-  if (!leaveRequest) {
-    // TODO: global error middlewer
-    throw new Error('nantilah');
-  }
-  const current = leaveRequest.status;
-
-  // else
-  if (canTransition(current, statusChange)) {
-    const updated = await prisma.leaveRequest.update({
-      where: {
-        id: leaveRequestId
-      },
-      data: {
-        status: statusChange
-      }
+  return prisma.$transaction(async (tx) => {
+    const leaveRequest = await tx.leaveRequest.findUnique({
+      where: { id: leaveRequestId }
     });
-  } else {
-    throw new Error('nantilah diurus');
-  }
-  // Kalau approved terus cancel, balikin jatahnya
-  const days = leaveRequest.days;
-  
-  if (leaveRequest.status == 'APPROVED' && statusChange == 'CANCELLED') {
-    await changeLeaveBalance(days, leaveRequest.employeeId, leaveRequest.leaveTypeId);
-  } else if (leaveRequest.status == 'PENDING' && statusChange == 'APPROVED'){
-    await changeLeaveBalance(-days, leaveRequest.employeeId, leaveRequest.leaveTypeId);
-  }
+
+    if (!leaveRequest) {
+      throw new Error('nantilah');
+    }
+
+    const current = leaveRequest.status;
+    if (!canTransition(current, statusChange)) {
+      throw new Error('nantilah diurus');
+    }
+
+    const updated = await tx.leaveRequest.update({
+      where: { id: leaveRequestId },
+      data: { status: statusChange }
+    });
+
+    if (current === 'APPROVED' && statusChange === 'CANCELLED') {
+      await changeLeaveBalance(
+        tx,
+        leaveRequest.days,
+        leaveRequest.employeeId,
+        leaveRequest.leaveTypeId
+      );
+    } else if (current === 'PENDING' && statusChange === 'APPROVED') {
+      await changeLeaveBalance(
+        tx,
+        -leaveRequest.days,
+        leaveRequest.employeeId,
+        leaveRequest.leaveTypeId
+      );
+    }
+
+    return updated;
+  });
 };
 
-const changeLeaveBalance = async (delta: number, employeeId: number, leaveTypeId: number) => {
-  const updatedBalance = await prisma.leaveBalance.update({
-    where: {employeeId_leaveTypeId:{
-      employeeId, leaveTypeId
-    }}, data:{
+const changeLeaveBalance = async (
+  tx: Prisma.TransactionClient,
+  delta: number,
+  employeeId: number,
+  leaveTypeId: number
+) => {
+  return tx.leaveBalance.update({
+    where: {
+      employeeId_leaveTypeId: {
+        employeeId,
+        leaveTypeId
+      }
+    },
+    data: {
       used: {
         increment: delta
       }
-    }} 
-  );
+    }
+  });
 };
