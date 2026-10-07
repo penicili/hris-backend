@@ -1,4 +1,4 @@
 import { z } from 'zod';
-import {LeaveApprovalStatus} from '../../generated/prisma/client.js'
+import { LeaveApprovalStatus } from '../../generated/prisma/client.js';
 
-export const newLeaveRequest = z.object({})
+export const newLeaveRequestSchema = z.object({});
