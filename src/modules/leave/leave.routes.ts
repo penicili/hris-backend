@@ -16,12 +16,12 @@ import {
 
 const router = Router();
 
-router.post('/pto/apply', authenticate, validate(newLeaveRequestSchema), applyLeaveController);
+router.post('/apply', authenticate, validate(newLeaveRequestSchema), applyLeaveController);
 
-router.put('/pto/edit', authenticate, validate(updateLeaveRequestSchema), updateLeaveController);
+router.put('/edit', authenticate, validate(updateLeaveRequestSchema), updateLeaveController);
 
 router.patch(
-  '/pto/process',
+  '/process',
   authenticate,
   authorize(PRIVILEGED_ROLES),
   validate(processLeaveStatusSchema),
