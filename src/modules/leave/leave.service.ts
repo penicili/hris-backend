@@ -1,3 +1,4 @@
+import { AppError } from '../../errors/app-error';
 import type { LeaveApprovalStatus } from '../../generated/prisma/client';
 import { Prisma } from '../../generated/prisma/client';
 import prisma from '../../lib/prisma';
@@ -10,6 +11,16 @@ type leaveInputRequest = {
   reason: string;
 };
 
+type leaveUpdateInputRequest = {
+  reqId: number;
+  employeeId?: number;
+  startDate?: Date;
+  endDate?: Date;
+  leaveTypeCode?: string;
+  reason?: string;
+  status?: LeaveApprovalStatus;
+};
+
 const leaveStatusTransitions: Record<LeaveApprovalStatus, LeaveApprovalStatus[]> = {
   PENDING: ['APPROVED', 'REJECTED', 'CANCELLED'],
   APPROVED: ['CANCELLED'],
@@ -19,6 +30,27 @@ const leaveStatusTransitions: Record<LeaveApprovalStatus, LeaveApprovalStatus[]>
 
 const canTransition = (from: LeaveApprovalStatus, to: LeaveApprovalStatus) => {
   return leaveStatusTransitions[from].includes(to);
+};
+
+const getBalanceDelta = (
+  currentStatus: LeaveApprovalStatus,
+  nextStatus: LeaveApprovalStatus,
+  currentDays: number,
+  nextDays: number
+) => {
+  if (currentStatus === 'PENDING' && nextStatus === 'APPROVED') {
+    return -nextDays;
+  }
+
+  if (currentStatus === 'APPROVED' && nextStatus === 'CANCELLED') {
+    return currentDays;
+  }
+
+  if (currentStatus === 'APPROVED' && nextStatus === 'APPROVED') {
+    return nextDays - currentDays;
+  }
+
+  return 0;
 };
 
 const calculateDays = (startDate: Date, endDate: Date): number => {
@@ -53,56 +85,6 @@ export const applyForLeave = async ({
   return await prisma.leaveRequest.create({ data });
 };
 
-export const processLeaveRequest = async (
-  leaveRequestId: number,
-  statusChange: LeaveApprovalStatus
-) => {
-  return prisma.$transaction(async (tx) => {
-    const leaveRequest = await tx.leaveRequest.findUnique({
-      where: { id: leaveRequestId }
-    });
-
-    if (!leaveRequest) {
-      throw new Error('nantilah');
-    }
-
-    const current = leaveRequest.status;
-    if (!canTransition(current, statusChange)) {
-      throw new Error('nantilah diurus');
-    }
-
-    // Check for race condition
-    const result = await tx.leaveRequest.updateMany({
-      where: { id: leaveRequestId, status: current },
-      data: { status: statusChange }
-    });
-
-    if (result.count === 0) {
-      throw new Error('Status sudah berubah, coba lagi');
-    }
-
-    if (current === 'APPROVED' && statusChange === 'CANCELLED') {
-      await changeLeaveBalance(
-        tx,
-        leaveRequest.days,
-        leaveRequest.employeeId,
-        leaveRequest.leaveTypeId
-      );
-    } else if (current === 'PENDING' && statusChange === 'APPROVED') {
-      await changeLeaveBalance(
-        tx,
-        -leaveRequest.days,
-        leaveRequest.employeeId,
-        leaveRequest.leaveTypeId
-      );
-    }
-
-    return tx.leaveRequest.findUniqueOrThrow({
-      where: { id: leaveRequestId }
-    });
-  });
-};
-
 const changeLeaveBalance = async (
   tx: Prisma.TransactionClient,
   delta: number,
@@ -123,3 +105,67 @@ const changeLeaveBalance = async (
     }
   });
 };
+
+export const updateLeaveRequest = async ({
+  reqId,
+  employeeId,
+  startDate,
+  endDate,
+  leaveTypeCode,
+  reason,
+  status
+}: leaveUpdateInputRequest) => {
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.leaveRequest.findUniqueOrThrow({
+      where: { id: reqId }
+    });
+
+    const nextStatus = status ?? current.status;
+    if (status !== undefined && !canTransition(current.status, nextStatus)) {
+      throw new AppError(400, "INVALID TRANSITION", "Canot change request status")
+    }
+
+    const effectiveStartDate = startDate ?? current.startDate;
+    const effectiveEndDate = endDate ?? current.endDate;
+    const nextDays = calculateDays(effectiveStartDate, effectiveEndDate);
+    const balanceDelta = getBalanceDelta(current.status, nextStatus, current.days, nextDays);
+
+    const data: Prisma.LeaveRequestUpdateInput = {
+      startDate: effectiveStartDate,
+      endDate: effectiveEndDate,
+      days: nextDays
+    };
+
+    if (status !== undefined) {
+      data.status = status;
+    }
+
+    if (employeeId !== undefined) {
+      data.employee = { connect: { id: employeeId } };
+    }
+
+    if (leaveTypeCode !== undefined) {
+      data.leaveType = { connect: { code: leaveTypeCode } };
+    }
+
+    if (reason !== undefined) {
+      data.reason = reason;
+    }
+
+    const updated = await tx.leaveRequest.update({
+      where: { id: reqId },
+      data
+    });
+
+    if (balanceDelta !== 0) {
+      await changeLeaveBalance(tx, balanceDelta, current.employeeId, current.leaveTypeId);
+    }
+
+    return updated;
+  });
+};
+
+export const processLeaveRequest = (leaveRequestId: number, statusChange: LeaveApprovalStatus) =>
+  updateLeaveRequest({ reqId: leaveRequestId, status: statusChange });
+
+export const updateLeaveReqDetails = (input: leaveUpdateInputRequest) => updateLeaveRequest(input);
