@@ -1,6 +1,8 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
 
-
+config({
+  path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env'
+});
 
 export const env = {
   dbHost: process.env.DB_HOST || 'localhost',
@@ -11,5 +13,5 @@ export const env = {
   port: process.env.APP_PORT || '5000',
   host: process.env.APP_HOST || 'localhost',
   jwtSecret: process.env.JWT_SECRET,
-  jwtTTL: process.env.JWT_TTL || '1d',
-}
+  jwtTTL: process.env.JWT_TTL || '1d'
+};
